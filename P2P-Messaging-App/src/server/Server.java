@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -47,11 +48,15 @@ public class Server {
         serverThread.start();
     }
     
-    private void sendBroadcast(String message) throws IOException {
-        // bütün bağlı client'lara mesaj gönder
-        for (ObjectOutputStream output : allClients) {
-            output.writeObject("Server : " + message);
+    private String listOfClients() {
+        // bütün client isimlerini gönderir
+        String names = "Users: ";
+        
+        for (Client c : clients) {
+            names += c.getUsername() + ", ";
         }
+        
+        return names;
     }
     
     private void stop() throws IOException {
@@ -107,6 +112,12 @@ public class Server {
                             System.out.println("Added to clients list.");
                             break;
                             
+                        case ClientList:
+                            String list = listOfClients();
+                            Message msg = new Message(Message.Message_Type.ClientList, list);
+                            clientOutput.writeObject(msg);
+                            break;
+                            
                         case Disconnect:
                             break end;
                             
@@ -153,6 +164,7 @@ public class Server {
         private String username;
         private ObjectInputStream clientInput;
         private ObjectOutputStream clientOutput;
+        private PublicKey publicKey;
                 
         public Client (Socket socket, String username, ObjectInputStream clientInput, ObjectOutputStream clientOutput) {
             this.clientSocket = socket;
@@ -175,6 +187,10 @@ public class Server {
         
         ObjectOutputStream getObjectOutputStream () {
             return clientOutput;
+        }
+        
+        PublicKey getPublicKey () {
+            return publicKey;
         }
     }
 }
