@@ -5,6 +5,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.util.Scanner;
 
 /**
@@ -26,8 +32,11 @@ public class Client {
     
     private Thread clientThread;
     
+    private PublicKey publicKey;
+    private PrivateKey privateKey;
+    
     // bedo style
-    protected void start (String host, int port) throws IOException {
+    protected void start (String host, int port) throws IOException, NoSuchAlgorithmException {
         System.out.println("Welcome");
         
         // Create client socket (ip + port)
@@ -37,6 +46,8 @@ public class Client {
         // output : sending message to server
         clientOutput = new ObjectOutputStream(socket.getOutputStream());
         clientInput = new ObjectInputStream(socket.getInputStream());
+        
+        generateKeys();
         
         // server'ı sürekli dinlemek için Thread oluştur
         clientThread = new ListenThread();
@@ -58,11 +69,18 @@ public class Client {
                 switch (mesaj) {
                     case "-end":
                         mess = new Message(Message_Type.Disconnect);
+                        Send(mess);
                         disconnect();
                         break end;
+                        
+                    case "-list":
+                        mess = new Message(Message_Type.ClientList);
+                        Send(mess);
+                        break;
 
                     case "-help":
                         System.out.println("-help: list of commands");
+                        System.out.println("-list: list of online users");
                         System.out.println("-end: close the app");
                         break;
 
@@ -71,6 +89,19 @@ public class Client {
                 }
             }
         }
+    }
+    
+    private void generateKeys () throws NoSuchAlgorithmException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        SecureRandom random = SecureRandom.getInstanceStrong();
+        
+        keyPairGenerator.initialize(2048, random);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        publicKey = keyPair.getPublic();
+        privateKey = keyPair.getPrivate();
+        
+        System.out.println("Public key: " + publicKey.toString());
+        System.out.println("Private key: " + privateKey.toString());
     }
     
     private void setUsername (String username) throws IOException {

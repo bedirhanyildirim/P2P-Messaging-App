@@ -1,6 +1,7 @@
 package client;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  *
@@ -13,7 +14,7 @@ import java.io.IOException;
  */
 public class test {
     
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         String host = "localhost";
         int port = 5000;
 
