@@ -59,6 +59,15 @@ public class Server {
         return names;
     }
     
+    private Client findClient (String username) {
+        for (Client c : clients) {
+            if (c.getUsername().equals(username)) {
+                return c;
+            }
+        }
+        return null;
+    }
+    
     private void stop() throws IOException {
         // bütün streamleri ve soketleri kapat
         if (serverSocket != null) {
@@ -76,6 +85,8 @@ public class Server {
         private ObjectOutputStream clientOutput;
         private String username;
         private Client me;
+        
+        private Client pair;
         
         private ListenThread (Socket clientSocket) {
             this.clientSocket = clientSocket;
@@ -98,6 +109,7 @@ public class Server {
                 //clientOutput.writeObject("@id-" + this.getName());
                 
                 Message mesaj;
+                Message msg;
                 // client mesaj gönderdiği sürece mesajı al
                 end:
                 while ((mesaj = (Message)clientInput.readObject()) != null) {
@@ -112,10 +124,54 @@ public class Server {
                             System.out.println("Added to clients list.");
                             break;
                             
+                        case PublicKey:
+                            me.setPublicKey((PublicKey) mesaj.getContent());
+                            break;
+                            
                         case ClientList:
                             String list = listOfClients();
-                            Message msg = new Message(Message.Message_Type.ClientList, list);
+                            msg = new Message(Message.Message_Type.ClientList, list);
                             clientOutput.writeObject(msg);
+                            break;
+                            
+                        case Pair:
+                            Client to = findClient((String) mesaj.getContent());
+                            if (to != null) {
+                                pair = to;
+                                System.out.println("to: " + to.getUsername());
+                                msg = new Message(Message.Message_Type.Pair, to.getPublicKey());
+                                clientOutput.writeObject(msg);
+                                System.out.println("Public key: " + to.getPublicKey());
+                            } else {
+                                System.out.println("Not valid");
+                            }
+                            break;
+                            
+                        case Nonce:
+                            Object content = mesaj.getContent();
+                            msg = new Message(Message.Message_Type.Nonce, content, username);
+                            pair.clientOutput.writeObject(msg);
+                            break;
+                            
+                        case askPublicKey:
+                            Client asking = findClient((String) mesaj.getContent());
+                            if (asking != null) {
+                                msg = new Message(Message.Message_Type.askPublicKey, asking.getPublicKey(), (String) mesaj.getContent());
+                                clientOutput.writeObject(msg);
+                            }
+                            break;
+                            
+                        case Confirm:
+                            Client asking2 = findClient((String) mesaj.getContent());
+                            Object content2 = mesaj.getContent();
+                            if (asking2 != null) {
+                                msg = new Message(Message.Message_Type.Confirm, content2, username);
+                                clientOutput.writeObject(msg);
+                            }
+                            break;
+                            
+                        case Message:
+                            
                             break;
                             
                         case Disconnect:
@@ -123,11 +179,6 @@ public class Server {
                             
                         default:
                             break;
-                    }
-
-                    // "end" mesajı iletişimi sonlandırır
-                    if (mesaj.equals("end")) {
-                        break;
                     }
                 }
             } catch (IOException ex) {
@@ -187,6 +238,10 @@ public class Server {
         
         ObjectOutputStream getObjectOutputStream () {
             return clientOutput;
+        }
+        
+        public void setPublicKey (PublicKey pk) {
+            this.publicKey = pk;
         }
         
         PublicKey getPublicKey () {

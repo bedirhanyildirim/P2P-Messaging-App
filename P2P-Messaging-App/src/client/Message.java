@@ -12,7 +12,7 @@ package client;
 public class Message implements java.io.Serializable {
     
     public static enum Message_Type {
-        Connect, Disconnect, Warning, Message, Username, End, ClientList
+        Connect, Disconnect, Warning, Message, Username, End, ClientList, PublicKey, Pair, Nonce, askPublicKey, Confirm
     }
     
     private Message_Type type;
